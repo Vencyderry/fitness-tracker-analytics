@@ -21,8 +21,5 @@ Thumbs.db
 # docker volumes (не коммитим данные)
 postgres_data/
 
-# screenshots (временно, пока не добавлены)
-screenshots/
-
 # личные файлы
 PLAN.md

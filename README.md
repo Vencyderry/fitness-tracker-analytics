@@ -134,12 +134,7 @@ ORDER BY time_bucket
 
 ## Скриншоты Redash
 
-*(добавить скриншоты после создания дашборда)*
-
-<!--
-![Dashboard](screenshots/dashboard.png)
-![Pie Chart](screenshots/pie_chart.png)
--->
+![Дашборд](screenshots/dashboard.png)
 
 ## Структура проекта
 
@@ -154,6 +149,5 @@ DataAnalysisCK/
 │   └── init.sql            # инициализация бд
 ├── notebooks/
 │   └── analysis.ipynb      # jupyter notebook с анализом
-├── PLAN.md                 # план выполнения
 └── README.md               # документация
 ```
