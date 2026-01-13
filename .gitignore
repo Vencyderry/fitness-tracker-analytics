@@ -23,3 +23,6 @@ postgres_data/
 
 # screenshots (временно, пока не добавлены)
 screenshots/
+
+# личные файлы
+PLAN.md
