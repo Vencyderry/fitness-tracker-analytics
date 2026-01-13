@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # база данных postgresql
+  # база данных для фитнес-данных
   postgres:
     image: postgres:15-alpine
     container_name: fitness_postgres
@@ -18,6 +18,24 @@ services:
       - analytics_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fitness -d fitness_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # отдельная база данных для redash
+  postgres_redash:
+    image: postgres:15-alpine
+    container_name: fitness_postgres_redash
+    environment:
+      POSTGRES_USER: redash
+      POSTGRES_PASSWORD: redash123
+      POSTGRES_DB: redash
+    volumes:
+      - postgres_redash_data:/var/lib/postgresql/data
+    networks:
+      - analytics_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U redash -d redash"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -50,20 +68,21 @@ services:
   # redash server
   redash:
     image: redash/redash:10.1.0.b50633
+    platform: linux/amd64
     container_name: fitness_redash
     depends_on:
-      postgres:
+      postgres_redash:
         condition: service_healthy
       redis:
         condition: service_started
     environment:
-      REDASH_DATABASE_URL: "postgresql://fitness:fitness123@postgres:5432/fitness_db"
+      REDASH_DATABASE_URL: "postgresql://redash:redash123@postgres_redash:5432/redash"
       REDASH_REDIS_URL: "redis://redis:6379/0"
       REDASH_SECRET_KEY: "supersecretkey123"
       REDASH_COOKIE_SECRET: "cookiesecret123"
       PYTHONUNBUFFERED: 0
     ports:
-      - "5000:5000"
+      - "5001:5000"
     networks:
       - analytics_net
     restart: unless-stopped
@@ -72,13 +91,15 @@ services:
   # redash scheduler
   redash_scheduler:
     image: redash/redash:10.1.0.b50633
+    platform: linux/amd64
     container_name: fitness_redash_scheduler
     depends_on:
       - redash
     environment:
-      REDASH_DATABASE_URL: "postgresql://fitness:fitness123@postgres:5432/fitness_db"
+      REDASH_DATABASE_URL: "postgresql://redash:redash123@postgres_redash:5432/redash"
       REDASH_REDIS_URL: "redis://redis:6379/0"
       REDASH_SECRET_KEY: "supersecretkey123"
+      REDASH_COOKIE_SECRET: "cookiesecret123"
       QUEUES: "celery"
       WORKERS_COUNT: 1
     networks:
@@ -89,13 +110,15 @@ services:
   # redash worker
   redash_worker:
     image: redash/redash:10.1.0.b50633
+    platform: linux/amd64
     container_name: fitness_redash_worker
     depends_on:
       - redash
     environment:
-      REDASH_DATABASE_URL: "postgresql://fitness:fitness123@postgres:5432/fitness_db"
+      REDASH_DATABASE_URL: "postgresql://redash:redash123@postgres_redash:5432/redash"
       REDASH_REDIS_URL: "redis://redis:6379/0"
       REDASH_SECRET_KEY: "supersecretkey123"
+      REDASH_COOKIE_SECRET: "cookiesecret123"
       QUEUES: "queries,scheduled_queries,celery"
       WORKERS_COUNT: 2
     networks:
@@ -123,6 +146,7 @@ services:
 
 volumes:
   postgres_data:
+  postgres_redash_data:
 
 networks:
   analytics_net:

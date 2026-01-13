@@ -52,7 +52,7 @@ docker-compose down -v
 
 | Сервис | URL | Данные для входа |
 |--------|-----|------------------|
-| Redash | http://localhost:5000 | создать при первом запуске |
+| Redash | http://localhost:5001 | создать при первом запуске |
 | Jupyter | http://localhost:8888 | токен: `fitness123` |
 | PostgreSQL | localhost:5432 | user: `fitness`, password: `fitness123` |
 
@@ -65,7 +65,7 @@ docker-compose down -v
 docker-compose run --rm redash create_db
 ```
 
-2. Открыть http://localhost:5000
+2. Открыть http://localhost:5001
 
 3. Создать аккаунт администратора
 
@@ -132,8 +132,18 @@ ORDER BY time_bucket
 - корреляционный анализ
 - анализ временных рядов
 
-## Скриншоты Redash
+## Скриншоты
 
+### Запуск системы
+![Запуск контейнеров](screenshots/started.png)
+
+### Загрузка образов
+![Docker pull](screenshots/pull.png)
+
+### Регистрация в Redash
+![Redash регистрация](screenshots/redash_sign.png)
+
+### Дашборд Redash
 ![Дашборд](screenshots/dashboard.png)
 
 ## Структура проекта
