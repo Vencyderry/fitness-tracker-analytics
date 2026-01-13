@@ -1,0 +1,25 @@
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+venv/
+
+# jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ide
+.idea/
+.vscode/
+*.swp
+
+# os
+.DS_Store
+Thumbs.db
+
+# docker volumes (не коммитим данные)
+postgres_data/
+
+# screenshots (временно, пока не добавлены)
+screenshots/

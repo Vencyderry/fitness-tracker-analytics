@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # база данных postgresql
+  postgres:
+    image: postgres:15-alpine
+    container_name: fitness_postgres
+    environment:
+      POSTGRES_USER: fitness
+      POSTGRES_PASSWORD: fitness123
+      POSTGRES_DB: fitness_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - analytics_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitness -d fitness_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # redis для redash
+  redis:
+    image: redis:7-alpine
+    container_name: fitness_redis
+    networks:
+      - analytics_net
+    restart: unless-stopped
+
+  # генератор данных
+  generator:
+    build: ./generator
+    container_name: fitness_generator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fitness_db
+      DB_USER: fitness
+      DB_PASSWORD: fitness123
+    networks:
+      - analytics_net
+    restart: unless-stopped
+
+  # redash server
+  redash:
+    image: redash/redash:10.1.0.b50633
+    container_name: fitness_redash
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      REDASH_DATABASE_URL: "postgresql://fitness:fitness123@postgres:5432/fitness_db"
+      REDASH_REDIS_URL: "redis://redis:6379/0"
+      REDASH_SECRET_KEY: "supersecretkey123"
+      REDASH_COOKIE_SECRET: "cookiesecret123"
+      PYTHONUNBUFFERED: 0
+    ports:
+      - "5000:5000"
+    networks:
+      - analytics_net
+    restart: unless-stopped
+    command: server
+
+  # redash scheduler
+  redash_scheduler:
+    image: redash/redash:10.1.0.b50633
+    container_name: fitness_redash_scheduler
+    depends_on:
+      - redash
+    environment:
+      REDASH_DATABASE_URL: "postgresql://fitness:fitness123@postgres:5432/fitness_db"
+      REDASH_REDIS_URL: "redis://redis:6379/0"
+      REDASH_SECRET_KEY: "supersecretkey123"
+      QUEUES: "celery"
+      WORKERS_COUNT: 1
+    networks:
+      - analytics_net
+    restart: unless-stopped
+    command: scheduler
+
+  # redash worker
+  redash_worker:
+    image: redash/redash:10.1.0.b50633
+    container_name: fitness_redash_worker
+    depends_on:
+      - redash
+    environment:
+      REDASH_DATABASE_URL: "postgresql://fitness:fitness123@postgres:5432/fitness_db"
+      REDASH_REDIS_URL: "redis://redis:6379/0"
+      REDASH_SECRET_KEY: "supersecretkey123"
+      QUEUES: "queries,scheduled_queries,celery"
+      WORKERS_COUNT: 2
+    networks:
+      - analytics_net
+    restart: unless-stopped
+    command: worker
+
+  # jupyter notebook для анализа
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    container_name: fitness_jupyter
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: "fitness123"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+    ports:
+      - "8888:8888"
+    networks:
+      - analytics_net
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  analytics_net:
+    driver: bridge
